@@ -23,6 +23,14 @@ export default function HolaMundo({ title, subtitle, description }: HolaMundoPro
       >
         {subtitle}
       </motion.p>
+      <motion.p
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: title.length * 0.1 + 0.9, duration: 0.8 }}
+        className="mt-4 max-w-2xl text-sm md:text-base text-white/70 leading-7"
+      >
+        {description}
+      </motion.p>
       <motion.div
         initial={{ scaleX: 0 }}
         animate={{ scaleX: 1 }}
