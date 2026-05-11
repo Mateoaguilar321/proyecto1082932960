@@ -1,20 +1,15 @@
 import type { Metadata } from "next";
-import { Oswald, Raleway } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-const oswald = Oswald({
-  variable: "--font-oswald",
-  subsets: ["latin"],
-});
-
-const raleway = Raleway({
-  variable: "--font-raleway",
+const inter = Inter({
+  variable: "--font-geist-sans",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
-  title: "Home | Mi App",
-  description: "Página principal del sistema",
+  title: "AtletiTrack",
+  description: "Sistema de seguimiento atlético",
 };
 
 export default function RootLayout({
@@ -25,7 +20,7 @@ export default function RootLayout({
   return (
     <html
       lang="es"
-      className={`${oswald.variable} ${raleway.variable} h-full antialiased`}
+      className={`${inter.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-black text-white">{children}</body>
     </html>

@@ -1,0 +1,25 @@
+{
+  "users": [{
+    "email": "admin@atletitrack.com",
+    "password_hash": "$2b$10$3XXvmrW57JVNvXY7m9BPs.dEOBYFyv0wSZAh0uDPgNA0eji5ywCqG",
+    "name": "Administrador",
+    "role": "admin"
+  }],
+  "events": [
+    { "name": "60m", "distance_m": 60, "min_time_s": 5.5, "unit": "segundos" },
+    { "name": "100m", "distance_m": 100, "min_time_s": 9.5, "unit": "segundos" },
+    { "name": "200m", "distance_m": 200, "min_time_s": 19.0, "unit": "segundos" },
+    { "name": "400m", "distance_m": 400, "min_time_s": 42.0, "unit": "segundos" },
+    { "name": "800m", "distance_m": 800, "min_time_s": 100.0, "unit": "minutos" },
+    { "name": "1500m", "distance_m": 1500, "min_time_s": 205.0, "unit": "minutos" },
+    { "name": "3000m", "distance_m": 3000, "min_time_s": 440.0, "unit": "minutos" },
+    { "name": "5000m", "distance_m": 5000, "min_time_s": 755.0, "unit": "minutos" },
+    { "name": "10000m", "distance_m": 10000, "min_time_s": 1578.0, "unit": "minutos" },
+    { "name": "Maratón", "distance_m": 42195, "min_time_s": 7200.0, "unit": "minutos" },
+    { "name": "3000m obstáculos", "distance_m": 3000, "min_time_s": 480.0, "unit": "minutos" },
+    { "name": "110m vallas", "distance_m": 110, "min_time_s": 12.5, "unit": "segundos" },
+    { "name": "400m vallas", "distance_m": 400, "min_time_s": 45.0, "unit": "segundos" },
+    { "name": "Media maratón", "distance_m": 21097, "min_time_s": 3600.0, "unit": "minutos" },
+    { "name": "4x100m relevos", "distance_m": 400, "min_time_s": 36.0, "unit": "segundos" }
+  ]
+}
