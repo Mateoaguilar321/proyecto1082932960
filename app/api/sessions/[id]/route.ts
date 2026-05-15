@@ -1,65 +1,139 @@
 // app/api/sessions/[id]/route.ts
 
 import { NextRequest, NextResponse } from 'next/server'
-import { withAuth } from '@/lib/withAuth'
-import { getSessionById, updateSession, deleteSession } from '@/lib/dataService'
-import { z } from 'zod'
+import { verifyAuth } from '@/lib/auth'
+import { supabase } from '@/lib/supabase'
 
-const updateSessionSchema = z.object({
-  notes: z.string().max(1000).optional(),
-  session_type: z.enum(['entrenamiento', 'competencia']).optional(),
-  session_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  temperature_c: z.number().min(-50).max(60).optional(),
-  wind_ms: z.number().min(-20).max(20).optional(),
-  surface: z.string().max(30).optional(),
-  altitude_m: z.number().int().min(0).max(9000).optional(),
-})
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: sessionId } = await params
+    const auth = await verifyAuth(request)
 
-async function handler(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  const userId = req.headers.get('x-user-id')!
-  const { id: sessionId } = await params
+    if (!auth) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    }
 
-  // Verify session exists and belongs to user
-  const session = await getSessionById(sessionId)
-  if (!session) {
-    return NextResponse.json({ error: 'Sesión no encontrada' }, { status: 404 })
-  }
+    // Fetch the session
+    const { data: session, error } = await supabase
+      .from('sessions')
+      .select(`
+        id,
+        time_seconds,
+        session_type,
+        session_date,
+        temperature,
+        wind,
+        surface,
+        altitude,
+        speed_kmh,
+        pace_min_km,
+        delta_pb_pct,
+        coach_note,
+        athlete_id,
+        event:events(name, distance_m)
+      `)
+      .eq('id', sessionId)
+      .single()
 
-  if (session.athlete_id !== userId) {
-    return NextResponse.json({ error: 'No tienes permiso para acceder a esta sesión' }, { status: 403 })
-  }
+    if (error || !session) {
+      return NextResponse.json({ message: 'Session not found' }, { status: 404 })
+    }
 
-  if (req.method === 'GET') {
+    // Verify authorization
+    if (session.athlete_id !== auth.id) {
+      return NextResponse.json({ message: 'Forbidden' }, { status: 403 })
+    }
+
     return NextResponse.json(session)
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 })
   }
-
-  if (req.method === 'PUT') {
-    try {
-      const body = await req.json()
-      const validated = updateSessionSchema.parse(body)
-
-      const updated = await updateSession(sessionId, validated)
-      return NextResponse.json(updated)
-    } catch (error: any) {
-      if (error.name === 'ZodError') {
-        return NextResponse.json({ error: 'Datos inválidos', details: error.errors }, { status: 400 })
-      }
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-  }
-
-  if (req.method === 'DELETE') {
-    try {
-      await deleteSession(sessionId)
-      return NextResponse.json({ success: true })
-    } catch (error: any) {
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-  }
-
-  return NextResponse.json({ error: 'Método no permitido' }, { status: 405 })
 }
 
-export const GET = withAuth(handler)
-export const PUT = withAuth(handler)
-export const DELETE = withAuth(handler)
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: sessionId } = await params
+    const auth = await verifyAuth(request)
+
+    if (!auth) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+
+    // Verify ownership
+    const { data: session } = await supabase
+      .from('sessions')
+      .select('athlete_id')
+      .eq('id', sessionId)
+      .single()
+
+    if (!session || session.athlete_id !== auth.id) {
+      return NextResponse.json({ message: 'Forbidden' }, { status: 403 })
+    }
+
+    // Update the session
+    const { data, error } = await supabase
+      .from('sessions')
+      .update(body)
+      .eq('id', sessionId)
+      .select()
+      .single()
+
+    if (error) {
+      return NextResponse.json({ message: error.message }, { status: 400 })
+    }
+
+    return NextResponse.json(data)
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 })
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id: sessionId } = await params
+    const auth = await verifyAuth(request)
+
+    if (!auth) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Verify ownership
+    const { data: session } = await supabase
+      .from('sessions')
+      .select('athlete_id')
+      .eq('id', sessionId)
+      .single()
+
+    if (!session || session.athlete_id !== auth.id) {
+      return NextResponse.json({ message: 'Forbidden' }, { status: 403 })
+    }
+
+    // Delete the session
+    const { error } = await supabase
+      .from('sessions')
+      .delete()
+      .eq('id', sessionId)
+
+    if (error) {
+      return NextResponse.json({ message: error.message }, { status: 400 })
+    }
+
+    return NextResponse.json({ message: 'Deleted' })
+  } catch (error) {
+    console.error(error)
+    return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 })
+  }
+}
