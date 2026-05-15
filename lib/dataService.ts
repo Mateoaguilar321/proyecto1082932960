@@ -380,3 +380,39 @@ export async function getSessionsByAthleteAndEvent(athleteId: string, eventId: s
 
   return data || []
 }
+
+// Export sessions (RN-07: max 24 months)
+export async function getSessionsForExport(athleteId: string, filters?: { eventId?: string; from?: string; to?: string }): Promise<{ sessions: any[]; warning?: string }> {
+  let from = filters?.from ? new Date(filters.from) : new Date()
+  let to = filters?.to ? new Date(filters.to) : new Date()
+
+  // Validate 24-month limit (RN-07)
+  const monthDiff = (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth())
+  let warning: string | undefined
+
+  if (monthDiff > 24) {
+    // Adjust to 24 months
+    from = new Date(to)
+    from.setMonth(from.getMonth() - 24)
+    warning = `Rango ajustado a máximo 24 meses (desde ${from.toLocaleDateString()} hasta ${to.toLocaleDateString()})`
+  }
+
+  let query = supabase
+    .from('sessions')
+    .select(`
+      *,
+      events (name, distance_m),
+      users!athlete_id (name, email)
+    `)
+    .eq('athlete_id', athleteId)
+    .gte('session_date', from.toISOString().split('T')[0])
+    .lte('session_date', to.toISOString().split('T')[0])
+    .order('session_date', { ascending: true })
+
+  if (filters?.eventId) {
+    query = query.eq('event_id', filters.eventId)
+  }
+
+  const { data } = await query
+  return { sessions: data || [], warning }
+}

@@ -55,5 +55,5 @@ async function handler(req: NextRequest) {
   return NextResponse.json({ error: 'Método no permitido' }, { status: 405 })
 }
 
-export const POST = withAuth(handler, ['atleta'])
-export const GET = withAuth(handler, ['atleta', 'entrenador'])
+export const POST = withAuth(handler)
+export const GET = withAuth(handler)

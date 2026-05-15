@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth';
-import { dataService } from '@/lib/dataService';
+import { getAthletesByCoach, getCoachTeam } from '@/lib/dataService';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get the coach's team
-    const team = await dataService.getCoachTeam(auth.id);
+    const team = await getCoachTeam(auth.id);
     if (!team) {
       return NextResponse.json(
         { error: 'No tienes un equipo creado' },
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get athletes in the team
-    const athletes = await dataService.getAthletesByCoach(auth.id);
+    const athletes = await getAthletesByCoach(auth.id);
 
     return NextResponse.json(athletes);
   } catch (error) {

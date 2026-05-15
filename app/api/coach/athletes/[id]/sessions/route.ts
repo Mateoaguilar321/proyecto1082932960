@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth';
-import { dataService } from '@/lib/dataService';
+import { getAthleteTeam, getCoachTeam, getSessionsByAthleteAndEvent, getSessionsByAthlete } from '@/lib/dataService';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const auth = await verifyAuth(request);
@@ -17,13 +17,13 @@ export async function GET(
       );
     }
 
-    const athleteId = params.id;
+    const { id: athleteId } = await params;
     const searchParams = request.nextUrl.searchParams;
     const eventId = searchParams.get('eventId');
 
     // Verify the athlete belongs to the coach's team
-    const athleteTeam = await dataService.getAthleteTeam(athleteId);
-    const coachTeam = await dataService.getCoachTeam(auth.id);
+    const athleteTeam = await getAthleteTeam(athleteId);
+    const coachTeam = await getCoachTeam(auth.id);
 
     if (!athleteTeam || !coachTeam || athleteTeam.id !== coachTeam.id) {
       return NextResponse.json(
@@ -34,9 +34,9 @@ export async function GET(
 
     let sessions;
     if (eventId) {
-      sessions = await dataService.getSessionsByAthleteAndEvent(athleteId, eventId);
+      sessions = await getSessionsByAthleteAndEvent(athleteId, eventId);
     } else {
-      sessions = await dataService.getSessionsByAthlete(athleteId);
+      sessions = await getSessionsByAthlete(athleteId);
     }
 
     return NextResponse.json(sessions);

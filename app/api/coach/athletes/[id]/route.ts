@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth';
-import { dataService } from '@/lib/dataService';
+import { getAthleteTeam, getCoachTeam, getUserById } from '@/lib/dataService';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const auth = await verifyAuth(request);
@@ -17,11 +17,11 @@ export async function GET(
       );
     }
 
-    const athleteId = params.id;
+    const { id: athleteId } = await params;
 
     // Verify the athlete belongs to the coach's team
-    const athleteTeam = await dataService.getAthleteTeam(athleteId);
-    const coachTeam = await dataService.getCoachTeam(auth.id);
+    const athleteTeam = await getAthleteTeam(athleteId);
+    const coachTeam = await getCoachTeam(auth.id);
 
     if (!athleteTeam || !coachTeam || athleteTeam.id !== coachTeam.id) {
       return NextResponse.json(
@@ -31,7 +31,7 @@ export async function GET(
     }
 
     // Get athlete info
-    const athlete = await dataService.getUserById(athleteId);
+    const athlete = await getUserById(athleteId);
     if (!athlete) {
       return NextResponse.json({ error: 'Atleta no encontrado' }, { status: 404 });
     }

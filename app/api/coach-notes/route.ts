@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth';
-import { dataService } from '@/lib/dataService';
-import { logAudit } from '@/lib/blobAudit';
+import { createCoachNote, getSessionById, getCoachTeam, getAthleteTeam, getCoachNotesBySession } from '@/lib/dataService';
+import { recordAuditEntry } from '@/lib/blobAudit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,14 +26,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener la sesión para verificar que pertenece a un atleta del equipo
-    const session = await dataService.getSessionById(sessionId);
+    const session = await getSessionById(sessionId);
     if (!session) {
       return NextResponse.json({ error: 'Sesión no encontrada' }, { status: 404 });
     }
 
     // Verificar que el atleta de la sesión pertenece al equipo del entrenador
-    const athleteTeam = await dataService.getAthleteTeam(session.athlete_id);
-    const coachTeam = await dataService.getCoachTeam(auth.id);
+    const athleteTeam = await getAthleteTeam(session.athlete_id);
+    const coachTeam = await getCoachTeam(auth.id);
 
     if (!athleteTeam || !coachTeam || athleteTeam.id !== coachTeam.id) {
       return NextResponse.json(
@@ -43,10 +43,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Crear la nota
-    const coachNote = await dataService.createCoachNote(sessionId, auth.id, note);
+    const coachNote = await createCoachNote(sessionId, auth.id, note);
 
     // Log auditoría
-    await logAudit({
+    const yyyymm = new Date().toISOString().slice(0, 7).replace('-', '');
+    await recordAuditEntry({
       userId: auth.id,
       userEmail: auth.email,
       userRole: auth.role,
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
       entity: 'session',
       entityId: sessionId,
       summary: `Agregar nota a sesión`,
-    });
+    }, yyyymm);
 
     return NextResponse.json(coachNote, { status: 201 });
   } catch (error) {
@@ -78,7 +79,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const notes = await dataService.getCoachNotesBySession(sessionId);
+    const notes = await getCoachNotesBySession(sessionId);
 
     return NextResponse.json(notes);
   } catch (error) {

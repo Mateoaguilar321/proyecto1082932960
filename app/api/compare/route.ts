@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth';
-import { dataService } from '@/lib/dataService';
+import { getCoachTeam, getAthleteTeam, getSessionsByAthleteAndEvent, getUserById } from '@/lib/dataService';
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Verificar que ambos atletas pertenecen al equipo del entrenador
-    const coachTeam = await dataService.getCoachTeam(auth.id);
+    const coachTeam = await getCoachTeam(auth.id);
     if (!coachTeam) {
       return NextResponse.json(
         { error: 'El entrenador no tiene un equipo' },
@@ -35,8 +35,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const athlete1Team = await dataService.getAthleteTeam(athlete1Id);
-    const athlete2Team = await dataService.getAthleteTeam(athlete2Id);
+    const athlete1Team = await getAthleteTeam(athlete1Id);
+    const athlete2Team = await getAthleteTeam(athlete2Id);
 
     if (
       !athlete1Team ||
@@ -51,18 +51,18 @@ export async function GET(request: NextRequest) {
     }
 
     // Obtener sesiones de ambos atletas para el mismo evento
-    const athlete1Sessions = await dataService.getSessionsByAthleteAndEvent(
+    const athlete1Sessions = await getSessionsByAthleteAndEvent(
       athlete1Id,
       eventId
     );
-    const athlete2Sessions = await dataService.getSessionsByAthleteAndEvent(
+    const athlete2Sessions = await getSessionsByAthleteAndEvent(
       athlete2Id,
       eventId
     );
 
     // Obtener información de los atletas
-    const athlete1 = await dataService.getUserById(athlete1Id);
-    const athlete2 = await dataService.getUserById(athlete2Id);
+    const athlete1 = await getUserById(athlete1Id);
+    const athlete2 = await getUserById(athlete2Id);
 
     // Combinar datos por fecha para la comparativa
     const combinedData: Record<
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       }
     > = {};
 
-    athlete1Sessions.forEach((session) => {
+    athlete1Sessions.forEach((session: any) => {
       const date = session.session_date;
       if (!combinedData[date]) {
         combinedData[date] = { date, athlete1_time: 0, athlete2_time: 0 };
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
       combinedData[date].athlete1_time = session.time_seconds;
     });
 
-    athlete2Sessions.forEach((session) => {
+    athlete2Sessions.forEach((session: any) => {
       const date = session.session_date;
       if (!combinedData[date]) {
         combinedData[date] = { date, athlete1_time: 0, athlete2_time: 0 };

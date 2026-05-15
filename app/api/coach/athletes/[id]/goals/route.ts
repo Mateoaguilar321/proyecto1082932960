@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth';
-import { dataService } from '@/lib/dataService';
+import { getAthleteTeam, getCoachTeam, getGoalsByAthlete, getEventById, getPersonalBestByEvent } from '@/lib/dataService';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const auth = await verifyAuth(request);
@@ -17,11 +17,11 @@ export async function GET(
       );
     }
 
-    const athleteId = params.id;
+    const { id: athleteId } = await params;
 
     // Verify the athlete belongs to the coach's team
-    const athleteTeam = await dataService.getAthleteTeam(athleteId);
-    const coachTeam = await dataService.getCoachTeam(auth.id);
+    const athleteTeam = await getAthleteTeam(athleteId);
+    const coachTeam = await getCoachTeam(auth.id);
 
     if (!athleteTeam || !coachTeam || athleteTeam.id !== coachTeam.id) {
       return NextResponse.json(
@@ -31,13 +31,13 @@ export async function GET(
     }
 
     // Get athlete's goals
-    const goals = await dataService.getGoalsByAthlete(athleteId);
+    const goals = await getGoalsByAthlete(athleteId);
 
     // Enrich with event names and current PB
     const enrichedGoals = await Promise.all(
-      goals.map(async (goal) => {
-        const event = await dataService.getEventById(goal.event_id);
-        const currentPB = await dataService.getPersonalBestByEvent(athleteId, goal.event_id);
+      goals.map(async (goal: any) => {
+        const event = await getEventById(goal.event_id);
+        const currentPB = await getPersonalBestByEvent(athleteId, goal.event_id);
         return {
           ...goal,
           event_name: event?.name || 'Desconocida',

@@ -4,16 +4,42 @@ import { SignJWT, jwtVerify } from 'jose'
 import bcrypt from 'bcryptjs'
 import crypto from 'crypto'
 import { supabase } from './supabase'
-import { getUserByEmail, createUser, recordAudit } from './dataService'
+import { getUserByEmail, createUser, recordAudit, getUserById } from './dataService'
 import type { User, CreateUserRequest } from './types'
+import type { NextRequest } from 'next/server'
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET!)
 
 export interface JWTPayload {
   userId: string
   role: string
+  email?: string
   iat: number
   exp: number
+}
+
+export async function verifyAuth(request: NextRequest): Promise<(JWTPayload & { id: string }) | null> {
+  try {
+    // Try to get token from cookie first, then from Authorization header
+    const cookieToken = request.cookies.get('auth')?.value
+    const authHeader = request.headers.get('authorization')
+    const headerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null
+
+    const token = cookieToken || headerToken
+    if (!token) return null
+
+    const payload = await verifyJWT(token)
+    if (!payload) return null
+
+    // Ensure the payload has the id field for backward compatibility
+    return {
+      ...payload,
+      id: payload.userId,
+    }
+  } catch (error) {
+    console.error('Auth verification error:', error)
+    return null
+  }
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -25,7 +51,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 export async function createJWT(user: User): Promise<string> {
-  return new SignJWT({ userId: user.id, role: user.role })
+  return new SignJWT({ userId: user.id, role: user.role, email: user.email })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('24h')

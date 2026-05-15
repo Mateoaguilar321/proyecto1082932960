@@ -2,19 +2,40 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { User } from '@/lib/types'
 
 interface AppLayoutProps {
   children: React.ReactNode
-  user: User
+  user?: User
 }
 
-export default function AppLayout({ children, user }: AppLayoutProps) {
+export default function AppLayout({ children, user: initialUser }: AppLayoutProps) {
+  const [user, setUser] = useState<User | null>(initialUser || null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const pathname = usePathname()
+
+  // Fetch user if not provided
+  useEffect(() => {
+    if (!user) {
+      fetch('/api/auth/me')
+        .then(r => r.json())
+        .then(data => {
+          if (data.user) {
+            setUser(data.user)
+          }
+        })
+        .catch(() => {
+          // Silently fail if not authenticated
+        })
+    }
+  }, [user])
+
+  if (!user) {
+    return <div className="flex items-center justify-center min-h-screen"><p>Cargando...</p></div>
+  }
 
   const navigation = user.role === 'atleta' ? [
     { name: 'Dashboard', href: '/dashboard', icon: '📊' },

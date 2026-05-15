@@ -15,9 +15,9 @@ const updateSessionSchema = z.object({
   altitude_m: z.number().int().min(0).max(9000).optional(),
 })
 
-async function handler(req: NextRequest, { params }: { params: { id: string } }) {
+async function handler(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const userId = req.headers.get('x-user-id')!
-  const sessionId = params.id
+  const { id: sessionId } = await params
 
   // Verify session exists and belongs to user
   const session = await getSessionById(sessionId)
@@ -60,6 +60,6 @@ async function handler(req: NextRequest, { params }: { params: { id: string } })
   return NextResponse.json({ error: 'Método no permitido' }, { status: 405 })
 }
 
-export const GET = withAuth(handler, ['atleta', 'entrenador'])
-export const PUT = withAuth(handler, ['atleta'])
-export const DELETE = withAuth(handler, ['atleta'])
+export const GET = withAuth(handler)
+export const PUT = withAuth(handler)
+export const DELETE = withAuth(handler)

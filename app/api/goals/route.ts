@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/auth';
-import { dataService } from '@/lib/dataService';
+import { getEventById, getPersonalBestByEvent, createGoal, getGoalsByAthlete } from '@/lib/dataService';
 import { formatTime, parseTime } from '@/lib/timeUtils';
-import { logAudit } from '@/lib/blobAudit';
+import { recordAuditEntry } from '@/lib/blobAudit';
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     const targetTimeS = parseTime(targetTimeString);
 
     // Obtener la prueba para validar
-    const event = await dataService.getEventById(eventId);
+    const event = await getEventById(eventId);
     if (!event) {
       return NextResponse.json(
         { error: 'Prueba no encontrada' },
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     }
 
     // RN-06: La meta debe ser menor a la MP actual
-    const currentPB = await dataService.getPersonalBestByEvent(auth.id, eventId);
+    const currentPB = await getPersonalBestByEvent(auth.id, eventId);
     if (currentPB && targetTimeS >= currentPB.best_time_s) {
       return NextResponse.json(
         {
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
     const baselineTimeS = currentPB?.best_time_s ?? targetTimeS;
 
     // Crear la meta
-    const goal = await dataService.createGoal(
+    const goal = await createGoal(
       auth.id,
       eventId,
       targetTimeS,
@@ -72,7 +72,8 @@ export async function POST(request: NextRequest) {
     );
 
     // Log auditoría
-    await logAudit({
+    const yyyymm = new Date().toISOString().slice(0, 7).replace('-', '');
+    await recordAuditEntry({
       userId: auth.id,
       userEmail: auth.email,
       userRole: auth.role,
@@ -80,7 +81,7 @@ export async function POST(request: NextRequest) {
       entity: 'goal',
       summary: `Crear meta de ${formatTime(targetTimeS)} en ${event.name}`,
       metadata: { eventId, targetTimeS, baselineTimeS },
-    });
+    }, yyyymm);
 
     return NextResponse.json(goal, { status: 201 });
   } catch (error) {
@@ -94,13 +95,13 @@ export async function GET(request: NextRequest) {
     const auth = await verifyAuth(request);
     if (!auth) return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
 
-    const goals = await dataService.getGoalsByAthlete(auth.id);
+    const goals = await getGoalsByAthlete(auth.id);
 
     // Enriquecer con información de eventos y progreso
     const enrichedGoals = await Promise.all(
-      goals.map(async (goal) => {
-        const event = await dataService.getEventById(goal.event_id);
-        const currentPB = await dataService.getPersonalBestByEvent(auth.id, goal.event_id);
+      goals.map(async (goal: any) => {
+        const event = await getEventById(goal.event_id);
+        const currentPB = await getPersonalBestByEvent(auth.id, goal.event_id);
         return {
           ...goal,
           event_name: event?.name || 'Desconocida',

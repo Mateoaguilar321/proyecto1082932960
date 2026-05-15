@@ -117,10 +117,6 @@ export default function ProgressChart({ data, eventName }: ProgressChartProps) {
           <Tooltip content={<CustomTooltip />} />
           <Legend
             wrapperStyle={{ fontSize: 12 }}
-            payload={[
-              { value: 'Entrenamiento', type: 'line', color: '#9ca3af' },
-              { value: 'Competencia', type: 'line', color: '#4f46e5' },
-            ]}
           />
           <Line
             type="monotone"
