@@ -293,3 +293,90 @@ export async function getPersonalBestByEvent(athleteId: string, eventId: string)
 
   return data
 }
+
+// Goals functions
+export async function createGoal(athleteId: string, eventId: string, targetTimeS: number, baselineTimeS: number): Promise<any> {
+  const { data, error } = await supabase
+    .from('goals')
+    .insert({
+      athlete_id: athleteId,
+      event_id: eventId,
+      target_time_s: targetTimeS,
+      baseline_time_s: baselineTimeS,
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function getGoalsByAthlete(athleteId: string): Promise<any[]> {
+  const { data } = await supabase
+    .from('goals')
+    .select('*')
+    .eq('athlete_id', athleteId)
+    .order('created_at', { ascending: false })
+
+  return data || []
+}
+
+export async function getGoalByAthleteAndEvent(athleteId: string, eventId: string): Promise<any | null> {
+  const { data } = await supabase
+    .from('goals')
+    .select('*')
+    .eq('athlete_id', athleteId)
+    .eq('event_id', eventId)
+    .single()
+
+  return data
+}
+
+// Coach notes functions
+export async function createCoachNote(sessionId: string, coachId: string, note: string): Promise<any> {
+  const { data, error } = await supabase
+    .from('coach_notes')
+    .insert({
+      session_id: sessionId,
+      coach_id: coachId,
+      note,
+    })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function getCoachNotesBySession(sessionId: string): Promise<any[]> {
+  const { data } = await supabase
+    .from('coach_notes')
+    .select('*')
+    .eq('session_id', sessionId)
+    .order('created_at', { ascending: true })
+
+  return data || []
+}
+
+// Coach team function
+export async function getCoachTeam(coachId: string): Promise<any | null> {
+  const { data } = await supabase
+    .from('teams')
+    .select('*')
+    .eq('coach_id', coachId)
+    .single()
+
+  return data
+}
+
+// Sessions by athlete and event
+export async function getSessionsByAthleteAndEvent(athleteId: string, eventId: string): Promise<any[]> {
+  const { data } = await supabase
+    .from('sessions')
+    .select('*')
+    .eq('athlete_id', athleteId)
+    .eq('event_id', eventId)
+    .order('session_date', { ascending: true })
+
+  return data || []
+}
